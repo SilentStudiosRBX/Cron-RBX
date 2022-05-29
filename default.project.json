@@ -1,0 +1,6 @@
+{
+    "name": "Cron",
+    "tree": {
+      "$path": "src"
+    }
+}

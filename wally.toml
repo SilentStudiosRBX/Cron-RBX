@@ -1,0 +1,15 @@
+[package]
+name = "bemery2/cron"
+description = """
+Cron the chronoligical task scheduler
+
+This library was made by Silent Studios,
+for the purpose of making JavaScript like automated features.
+It wasn't intended for performance-constrained scenarios;
+the only real niche scenario this was intended for was defining
+roll over times for stuff like item shops.
+"""
+version = "0.1.2"
+license = "MIT"
+realm = "shared"
+registry = "https://github.com/upliftgames/wally-index"
