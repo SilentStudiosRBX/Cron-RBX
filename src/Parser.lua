@@ -1,4 +1,4 @@
-local Settings = require(script.Settings);
+local Settings = require(script.Parent.Settings);
 local Debug = Settings.DebugTraceback;
 local Perf = Settings.PerformanceLogging;
 
