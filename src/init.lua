@@ -117,15 +117,15 @@ function Cron.new(TimeZoneOffset: string | number?)
 	local Difference = TimeZoneOffset * 60 * 60;
 	self._Tasks = {};
 
-	self.CurrentTime = DateTime.now().UnixTimestampMillis + Difference;
+	self.CurrentTime = DateTime.now().UnixTimestamp + Difference;
 	self.CurrentDate = os.date("!*t", math.floor(self.CurrentTime));
 
 	self._Thread = task.spawn(function()
 		while true do
-			local TimeInMS = DateTime.now().UnixTimestampMillis + Difference;
-			local TimeRemaining = (60 - (TimeInMS % 60 + 1)) / 60;
-			self.CurrentTime = TimeInMS;
-			self.CurrentDate = os.date("!*t", math.floor(TimeInMS));
+			local UnixTime = DateTime.now().UnixTimestamp + Difference;
+			local TimeRemaining = (60 - (UnixTime % 60 + 1)) / 60;
+			self.CurrentTime = UnixTime;
+			self.CurrentDate = os.date("!*t", UnixTime);
 			self:_TasksEvent();
 			task.wait(TimeRemaining);
 		end
