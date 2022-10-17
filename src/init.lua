@@ -54,7 +54,7 @@ RunService.Heartbeat:Connect(function(deltaTime)
 
 	for _, Job in Jobs do
 		local AdjustedUnixTime = Time + Job.Difference;
-		if AdjustedUnixTime >= Job.Next then
+		if Job.Next and AdjustedUnixTime >= Job.Next then
 			Job.Next = GetNextTime(Job, AdjustedUnixTime)
 			Job:Callback();
 		end
