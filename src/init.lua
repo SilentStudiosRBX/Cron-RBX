@@ -1,109 +1,41 @@
---[[
-	This library was made by Silent Studios,
-	for the purpose of making Javascript like automated features.
-	It wasn't intended for performance-constrained scenarios
-	and the only real niche scenario this was intended for was defining
-	roll over times for stuff like item shops.
-]]--
-
+local RunService = game:GetService("RunService");
 local Settings = require(script.Settings);
-local ParseExpression = require(script.Parser);
-local HttpService = game:GetService("HttpService");
-local Perf = Settings.PerformanceLogging;
+local Parser = require(script.Parser);
 
-local GenID = function()
-	return HttpService:GenerateGUID();
-end
---[[
-	The Expected Format for JobExpression is similar to the JavaScript Cron.
-	"seconds month hour day month wday"
-]]
+local Jobs = {};
 
-local IndexMap = {
-	[1] = "sec";
-	[2] = "min";
-	[3] = "hour";
-	[4] = "day";
-	[5] = "month";
-	[6] = "wday";
+local Time = tick();
+
+RunService.Heartbeat:Connect(function(deltaTime)
+    Time += deltaTime;
+
+    for _, Job in Jobs do
+        local AdjustedUnixTime = Time + Job.Difference;
+        local Date = DateTime.fromUnixTimestamp(AdjustedUnixTime);
+        if (Job.Start and os.difftime(Date.UnixTimestamp, Job.Start.UnixTimestamp) < 0) then
+            continue
+        end
+
+        if (Job.End and os.difftime(Job.End.UnixTimestamp, Date.UnixTimestamp) < 0) then
+            continue
+        end
+
+    end
+end)
+
+export type CronSettings = {
+    Start: DateTime?;
+    End: DateTime?;
+    UTC: string | number?;
+    Time: string?;
 }
 
-local Cron = {};
-Cron.__index = Cron;
-Cron.ClassName = "Cron";
-Cron.__tostring = function()
-	return Cron.ClassName;
-end
+local function CronJob(CronSettings: CronSettings)
+    local Job = {};
+    Job.Start = CronSettings.Start;
+    Job.End = CronSettings.End;
 
-function Cron:_TasksEvent()
-	local CurrentDate = self.CurrentDate;
-	for _, Task in pairs(self._Tasks) do
-		task.spawn(function()
-			local T = os.clock();
-			local CheckTime = true;
-			for ListIndex, TimeInfo in ipairs(Task.Time) do
-				if CheckTime then
-					local MappedIndex = IndexMap[ListIndex];
-					local Current = CurrentDate[MappedIndex];
-					if TimeInfo.Type == "Range" then
-						CheckTime = Current >= TimeInfo.Numbers[1] and Current <= TimeInfo.Numbers[2];
-					elseif TimeInfo.Type == "Number" then
-						local MatchesAny = false;
-						for _, Number in ipairs(TimeInfo.Numbers) do
-							if MatchesAny == false and Current == Number then
-								MatchesAny = true;
-							end
-						end
-						CheckTime = MatchesAny;
-					elseif TimeInfo.Type == "Every" then
-						CheckTime = Current % TimeInfo.Numbers[1] == 0;
-					end
-				end
-			end
-
-			if Perf then
-				print(string.format("It took %fs to compare the time expressions", os.clock() - T));
-			end
-
-			if CheckTime then
-				Task.Callback();
-			end
-		end)
-	end
-end
-
-function Cron:ScheduleTask(Expression: string, Callback: () -> nil): string
-	local Time = ParseExpression(Expression);
-
-	if Time then
-		local Id = GenID();
-
-		self._Tasks[Id] = {
-			Time = Time;
-			Callback = Callback;
-		}
-
-		return Id;
-	end
-end
-
-function Cron:RemoveTask(Id: string)
-	if self._Tasks[Id] then
-		self._Tasks[Id] = nil;
-	end
-end
-
-function Cron:GetDate()
-	return self.CurrentDate;
-end
-
-function Cron:GetTime()
-	return self.CurrentTime;
-end
-
-function Cron.new(TimeZoneOffset: string | number?)
-	local self = setmetatable({}, Cron);
-	self.new = nil;
+    local TimeZoneOffset = if CronSettings.UTC then CronSettings.UTC else -5;
 
 	if type(TimeZoneOffset) == "string" then
 		local Value = TimeZoneOffset:match("U*T*C*[%-%+]*%d+");
@@ -114,33 +46,32 @@ function Cron.new(TimeZoneOffset: string | number?)
 		TimeZoneOffset = tonumber(Value);
 	end
 
-	local Difference = TimeZoneOffset * 60 * 60;
-	self._Tasks = {};
+	local Difference = TimeZoneOffset * 3600;
+    Job.Difference = Difference;
+    Job.Pattern = Parser(CronSettings.Time or "");
 
-	self.CurrentTime = DateTime.now().UnixTimestamp + Difference;
-	self.CurrentDate = os.date("!*t", math.floor(self.CurrentTime));
+    table.insert(Jobs, Job);
 
-	self._Thread = task.spawn(function()
-		while true do
-			local UnixTime = DateTime.now().UnixTimestamp + Difference;
-			local TimeRemaining = (60 - (UnixTime % 60 + 1)) / 60;
-			self.CurrentTime = UnixTime;
-			self.CurrentDate = os.date("!*t", UnixTime);
-			self:_TasksEvent();
-			task.wait(TimeRemaining);
-		end
-	end)
+    function Job:GetNextTime()
+        local CurrentTime = Time + Difference;
+        if (Job.Start and os.difftime(CurrentTime, Job.Start.UnixTimestamp) < 0) then
+            return
+        end
 
-	return self;
+        if (Job.End and os.difftime(Job.End.UnixTimestamp, CurrentTime) < 0) then
+            return
+        end
+
+        local Year = math.floor(CurrentTime / Settings.Divisors.Year);
+        local Month = math.floor((CurrentTime % Settings.Divisors.Year) / Settings.Divisors.Month);
+        local Day = math.floor(((CurrentTime % Settings.Divisors.Year) % Settings.Divisors.Month) / Settings.Divisors.Day);
+        local Hour = math.floor((((CurrentTime % Settings.Divisors.Year) % Settings.Divisors.Month) % Settings.Divisors.Day) / Settings.Divisors.Hour);
+        local Minute = math.floor(((((CurrentTime % Settings.Divisors.Year) % Settings.Divisors.Month) % Settings.Divisors.Day) % Settings.Divisors.Hour) / Settings.Divisors.Minute);
+    end
+
+    return Job;
 end
 
-function Cron:Destroy()
-	if self._Thread then
-		self._Thread:Disconnect();
-	end
-	self._Thread = nil;
-	table.clear(self);
-	setmetatable(self, nil);
-end
-
-return Cron;
+return {
+    new = CronJob;
+}

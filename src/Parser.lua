@@ -1,6 +1,4 @@
-local Settings = require(script.Parent.Settings);
-local Debug = Settings.DebugTraceback;
-local Perf = Settings.PerformanceLogging;
+local Settings = require(script.Parent.Parser);
 
 local ExpectedExpressions = {
 	Number = "^[%d+,+]+$"; --Number
@@ -18,14 +16,12 @@ local IndexMap = {
 	[6] = "wday";
 }
 
-local function CheckValidArgument(Index, Expression)
-	local T = os.clock();
-
-	if Expression == "*" then
+local function Validate(Index, Expression)
+    if Expression == "*" then
 		return "All", {-1};
 	end
 
-	local CurrentExpressionType = nil;
+    local CurrentExpressionType = nil;
 
 	for ExpressionType, ExpectedExpression in pairs(ExpectedExpressions) do
 		if Expression:match(ExpectedExpression) then
@@ -48,35 +44,39 @@ local function CheckValidArgument(Index, Expression)
 
 			for _, Number in ipairs(Numbers) do
 				if Number < IndexInfo.Min or Number > IndexInfo.Max then
-					warn(string.format(Settings.Errors.ArgumentOutsideRange, Index, IndexInfo.Min, IndexInfo.Max, Number), Debug and debug.traceback() or "");
-					return;
+					warn(string.format(Settings.Errors.ArgumentOutsideRange, Index, IndexInfo.Min, IndexInfo.Max, Number));
+					return
 				end
-			end
-
-			if Perf then
-				print(string.format("It took %fs to validate arguments", os.clock() - T));
 			end
 
 			return CurrentExpressionType, Numbers;
 		end
 	else
-		warn(string.format(Settings.Errors.InvalidExpression, Expression), Debug and debug.traceback() or "");
+		warn(string.format(Settings.Errors.InvalidExpression, Expression));
 	end
 end
 
-local function ParseExpression(Expression: string)
-	local T = os.clock();
+local function ConvertRange(Table)
+    local Start, End = Table[1], Table[2];
+    assert(Start < End, "Range Start shouldn't be greater than End.");
+    local T = {};
+    for Value = Start, End do
+        table.insert(T, Value);
+    end
+    return T;
+end
 
+return function(Expression)
 	local TimeTable = {};
 	local Count = 1;
 
 	for ExpressionFragment in string.gmatch(Expression, "[^%s]+") do
-		local ExpressionType, Numbers = CheckValidArgument(Count, ExpressionFragment);
+		local ExpressionType, Numbers = Validate(Count, ExpressionFragment);
 		if ExpressionType and Numbers then
-			if ExpressionType == "Range" and Numbers[1] >= Numbers[2] then
-				warn(string.format(Settings.Errors.ArgumentComparisonFailed, Numbers[1], Numbers[2]), Debug and debug.traceback() or "");
-				return;
-			end
+            
+			if ExpressionType == "Range" then
+                Numbers = ConvertRange(Numbers);
+            end
 
 			table.insert(TimeTable, Count, {
 				Type = ExpressionType;
@@ -86,12 +86,4 @@ local function ParseExpression(Expression: string)
 			Count += 1;
 		end
 	end
-
-	if Perf then
-		print(string.format("It took %2.4fs to parse expressions:", os.clock() - T), TimeTable);
-	end
-
-	return TimeTable;
 end
-
-return ParseExpression;
