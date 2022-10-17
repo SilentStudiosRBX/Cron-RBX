@@ -8,8 +8,22 @@ for the purpose of making JavaScript like automated features.
 It wasn't intended for performance-constrained scenarios;
 the only real niche scenario this was intended for was defining
 roll over times for stuff like item shops.
+
+local Task = require(Path.to.Cron);
+
+local Job = Task.new({
+	UTC = -5;
+	Start = DateTime.fromLocalTime(2022, 1, 1);
+	End = DateTime.fromLocalTime(2022, 12, 31);
+	Time = "*/15";
+	Callback = function()
+		print("Here");
+	end;
+});
+
+task.delay(5, Job.Stop, Job);
 """
-version = "1.0.3"
+version = "1.0.4"
 license = "MIT"
 realm = "shared"
 registry = "https://github.com/upliftgames/wally-index"
