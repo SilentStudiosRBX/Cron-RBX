@@ -7,13 +7,19 @@ the only real scenarios we designed this for was to define
 roll over times for stuff like item shops.
 
 ```
-local Scheduler = Cron.new("UTC-5"); -- Takes either a string or number as input adjusts the time zone based on this input.
+local Task = require(Path.to.Cron);
 
-local TaskId = Scheduler:ScheduleTask("*/10", function() -- this expects a time expression "seconds minutes hours days months and weekdays"
-  print("This will print every 10 seconds");
-end)
+local Job = Task.new({
+	UTC = -5; -- Optional, Defaults to 0, Time Zone Offset
+	Start = DateTime.fromLocalTime(2022, 1, 1); -- Optional Start Date
+	End = DateTime.fromLocalTime(2022, 12, 31); -- Optional End Date
+	Time = "0 0 */2"; -- Optional Cron Time, defaults to "*", example runs every 2 hours
+	Callback = function()
+		print("Here");
+	end,
+});
 
-Scheduler:RemoveTask(TaskId);
+print(os.date("!*t", Job.Next));
 ```
 
 Explanation/Examples of Time Expressions
