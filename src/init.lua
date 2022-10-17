@@ -5,7 +5,7 @@ local Parser = require(script.Parser);
 local Jobs = {};
 
 local function GetNextTime(Job, CurrentTime)
-	local CurrentTime = CurrentTime + 1;
+	CurrentTime += 1;
 
 	if (Job.Start and os.difftime(CurrentTime, Job.Start.UnixTimestamp) < 0) then
 		return
@@ -19,11 +19,9 @@ local function GetNextTime(Job, CurrentTime)
 	local t = os.clock();
 
 	do
-		local CurrentTime = CurrentTime;
-
 		while not nextTime do
 			local Date = os.date("!*t", CurrentTime);
-		
+
 			local Found = true;
 
 			for Index, Pattern in pairs(Job.Pattern) do
@@ -95,7 +93,8 @@ local function CronJob(CronSettings: CronSettings)
 
 	Job.Next = GetNextTime(Job, Time + Difference);
 
-    	table.insert(Jobs, Job);
+	table.insert(Jobs, Job);
+
 	return Job;
 end
 
