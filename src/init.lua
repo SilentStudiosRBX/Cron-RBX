@@ -4,22 +4,62 @@ local Parser = require(script.Parser);
 
 local Jobs = {};
 
-local Time = tick();
+local function GetNextTime(Job, CurrentTime)
+	local CurrentTime = CurrentTime + 1;
+
+	if (Job.Start and os.difftime(CurrentTime, Job.Start.UnixTimestamp) < 0) then
+		return
+	end
+
+	if (Job.End and os.difftime(Job.End.UnixTimestamp, CurrentTime) < 0) then
+		return
+	end
+
+	local nextTime;
+	local t = os.clock();
+
+	do
+		local CurrentTime = CurrentTime;
+
+		while not nextTime do
+			local Date = os.date("!*t", CurrentTime);
+		
+			local Found = true;
+
+			for Index, Pattern in pairs(Job.Pattern) do
+				if Found and Pattern and Pattern.Type ~= "All" then
+					if Pattern.Type == "Every" then
+						Found = Date[Index] % Job.Pattern[Index].Numbers[1] == 0;
+					else
+						Found = table.find(Job.Pattern[Index].Numbers, Date[Index]);
+					end
+				end
+			end
+
+			if Found then
+				nextTime = CurrentTime;
+			else
+				CurrentTime += 1;
+			end
+		end
+	end
+
+	print(string.format("It took %2.7f to find the next time", os.clock() - t));
+
+	return nextTime;
+end
+
+local Time = DateTime.now().UnixTimestamp;
 
 RunService.Heartbeat:Connect(function(deltaTime)
     Time += deltaTime;
 
     for _, Job in Jobs do
         local AdjustedUnixTime = Time + Job.Difference;
-        local Date = DateTime.fromUnixTimestamp(AdjustedUnixTime);
-        if (Job.Start and os.difftime(Date.UnixTimestamp, Job.Start.UnixTimestamp) < 0) then
-            continue
-        end
-
-        if (Job.End and os.difftime(Job.End.UnixTimestamp, Date.UnixTimestamp) < 0) then
-            continue
-        end
-
+        if AdjustedUnixTime >= Job.Next then
+			Job.Next = GetNextTime(Job, AdjustedUnixTime)
+			Job:Callback();
+		end
     end
 end)
 
@@ -28,13 +68,10 @@ export type CronSettings = {
     End: DateTime?;
     UTC: string | number?;
     Time: string?;
+	Callback: () -> nil;
 }
 
 local function CronJob(CronSettings: CronSettings)
-    local Job = {};
-    Job.Start = CronSettings.Start;
-    Job.End = CronSettings.End;
-
     local TimeZoneOffset = if CronSettings.UTC then CronSettings.UTC else -5;
 
 	if type(TimeZoneOffset) == "string" then
@@ -47,27 +84,18 @@ local function CronJob(CronSettings: CronSettings)
 	end
 
 	local Difference = TimeZoneOffset * 3600;
-    Job.Difference = Difference;
-    Job.Pattern = Parser(CronSettings.Time or "");
+
+	local Job = {
+		Start = CronSettings.Start;
+		End = CronSettings.End;
+		Pattern = Parser(CronSettings.Time or "");
+		Difference = Difference;
+		Callback = CronSettings.Callback;
+	};
+
+	Job.Next = GetNextTime(Job, Time + Difference);
 
     table.insert(Jobs, Job);
-
-    function Job:GetNextTime()
-        local CurrentTime = Time + Difference;
-        if (Job.Start and os.difftime(CurrentTime, Job.Start.UnixTimestamp) < 0) then
-            return
-        end
-
-        if (Job.End and os.difftime(Job.End.UnixTimestamp, CurrentTime) < 0) then
-            return
-        end
-
-        local Year = math.floor(CurrentTime / Settings.Divisors.Year);
-        local Month = math.floor((CurrentTime % Settings.Divisors.Year) / Settings.Divisors.Month);
-        local Day = math.floor(((CurrentTime % Settings.Divisors.Year) % Settings.Divisors.Month) / Settings.Divisors.Day);
-        local Hour = math.floor((((CurrentTime % Settings.Divisors.Year) % Settings.Divisors.Month) % Settings.Divisors.Day) / Settings.Divisors.Hour);
-        local Minute = math.floor(((((CurrentTime % Settings.Divisors.Year) % Settings.Divisors.Month) % Settings.Divisors.Day) % Settings.Divisors.Hour) / Settings.Divisors.Minute);
-    end
 
     return Job;
 end

@@ -1,4 +1,4 @@
-local Settings = require(script.Parent.Parser);
+local Settings = require(script.Parent.Settings);
 
 local ExpectedExpressions = {
 	Number = "^[%d+,+]+$"; --Number
@@ -18,7 +18,7 @@ local IndexMap = {
 
 local function Validate(Index, Expression)
     if Expression == "*" then
-		return "All", {-1};
+		return "All";
 	end
 
     local CurrentExpressionType = nil;
@@ -70,20 +70,21 @@ return function(Expression)
 	local TimeTable = {};
 	local Count = 1;
 
-	for ExpressionFragment in string.gmatch(Expression, "[^%s]+") do
+	for ExpressionFragment in Expression:gmatch("[^%s]+") do
 		local ExpressionType, Numbers = Validate(Count, ExpressionFragment);
-		if ExpressionType and Numbers then
-            
+		if ExpressionType then
 			if ExpressionType == "Range" then
                 Numbers = ConvertRange(Numbers);
-            end
+			end
 
-			table.insert(TimeTable, Count, {
+			TimeTable[IndexMap[Count]] = {
 				Type = ExpressionType;
 				Numbers = Numbers;
-			});
-
+			}
+			
 			Count += 1;
 		end
 	end
+
+	return TimeTable;
 end

@@ -7,14 +7,6 @@ return {
 		is due to the roblox API for dates.
 	]]--
 
-	Divisors = {
-		Year = 31556926;
-		Month = 2629743;
-		Day = 86400;
-		Hour = 3600;
-		Minute = 60;
-	};
-
 	month = {
 		Min = 1;
 		Max = 12;
