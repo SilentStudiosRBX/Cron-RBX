@@ -95,6 +95,10 @@ local function CronJob(CronSettings: CronSettings)
 
 	table.insert(Jobs, Job);
 
+	Job.Stop = function(self)
+		print(table.remove(Jobs, table.find(Jobs, self)));
+	end
+
 	return Job;
 end
 
