@@ -52,27 +52,27 @@ end
 local Time = DateTime.now().UnixTimestamp;
 
 RunService.Heartbeat:Connect(function(deltaTime)
-    Time += deltaTime;
+	Time += deltaTime;
 
-    for _, Job in Jobs do
-        local AdjustedUnixTime = Time + Job.Difference;
-        if AdjustedUnixTime >= Job.Next then
+	for _, Job in Jobs do
+		local AdjustedUnixTime = Time + Job.Difference;
+		if AdjustedUnixTime >= Job.Next then
 			Job.Next = GetNextTime(Job, AdjustedUnixTime)
 			Job:Callback();
 		end
-    end
+	end
 end)
 
 export type CronSettings = {
-    Start: DateTime?;
-    End: DateTime?;
-    UTC: string | number?;
-    Time: string?;
+	Start: DateTime?;
+	End: DateTime?;
+	UTC: string | number?;
+	Time: string?;
 	Callback: () -> nil;
 }
 
 local function CronJob(CronSettings: CronSettings)
-    local TimeZoneOffset = if CronSettings.UTC then CronSettings.UTC else -5;
+	local TimeZoneOffset = if CronSettings.UTC then CronSettings.UTC else -5;
 
 	if type(TimeZoneOffset) == "string" then
 		local Value = TimeZoneOffset:match("U*T*C*[%-%+]*%d+");
@@ -95,11 +95,10 @@ local function CronJob(CronSettings: CronSettings)
 
 	Job.Next = GetNextTime(Job, Time + Difference);
 
-    table.insert(Jobs, Job);
-
-    return Job;
+    	table.insert(Jobs, Job);
+	return Job;
 end
 
 return {
-    new = CronJob;
+	new = CronJob;
 }
