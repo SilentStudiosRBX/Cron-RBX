@@ -16,7 +16,7 @@ local function GetNextTime(Job, CurrentTime)
 	end
 
 	local nextTime;
-	local t = os.clock();
+	--local t = os.clock();
 
 	do
 		while not nextTime do
@@ -42,7 +42,7 @@ local function GetNextTime(Job, CurrentTime)
 		end
 	end
 
-	print(string.format("It took %2.7f to find the next time", os.clock() - t));
+	--print(string.format("It took %2.7f to find the next time", os.clock() - t));
 
 	return nextTime;
 end

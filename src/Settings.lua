@@ -1,7 +1,4 @@
 return {
-	DebugTraceback = false;
-	PerformanceLogging = false;
-
 	--[[
 		If you're curious as to why I have case mismatch
 		is due to the roblox API for dates.
