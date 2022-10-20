@@ -23,7 +23,7 @@ local Job = Task.new({
 
 task.delay(5, Job.Stop, Job);
 """
-version = "1.0.4"
+version = "1.0.5"
 license = "MIT"
 realm = "shared"
 registry = "https://github.com/upliftgames/wally-index"

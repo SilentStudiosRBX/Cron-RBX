@@ -16,33 +16,28 @@ local function GetNextTime(Job, CurrentTime)
 	end
 
 	local nextTime;
-	--local t = os.clock();
 
-	do
-		while not nextTime do
-			local Date = os.date("!*t", CurrentTime);
+	while not nextTime do
+		local Date = os.date("!*t", CurrentTime);
 
-			local Found = true;
+		local Found = true;
 
-			for Index, Pattern in pairs(Job.Pattern) do
-				if Found and Pattern and Pattern.Type ~= "All" then
-					if Pattern.Type == "Every" then
-						Found = Date[Index] % Job.Pattern[Index].Numbers[1] == 0;
-					else
-						Found = table.find(Job.Pattern[Index].Numbers, Date[Index]);
-					end
+		for Index, Pattern in pairs(Job.Pattern) do
+			if Found and Pattern and Pattern.Type ~= "All" then
+				if Pattern.Type == "Every" then
+					Found = Date[Index] % Job.Pattern[Index].Numbers[1] == 0;
+				else
+					Found = table.find(Job.Pattern[Index].Numbers, Date[Index]);
 				end
 			end
+		end
 
-			if Found then
-				nextTime = CurrentTime;
-			else
-				CurrentTime += 1;
-			end
+		if Found then
+			nextTime = CurrentTime;
+		else
+			CurrentTime += 1;
 		end
 	end
-
-	--print(string.format("It took %2.7f to find the next time", os.clock() - t));
 
 	return nextTime;
 end
@@ -55,7 +50,7 @@ RunService.Heartbeat:Connect(function(deltaTime)
 	for _, Job in Jobs do
 		local AdjustedUnixTime = Time + Job.Difference;
 		if Job.Next and AdjustedUnixTime >= Job.Next then
-			Job.Next = GetNextTime(Job, AdjustedUnixTime)
+			Job.Next = GetNextTime(Job, AdjustedUnixTime);
 			Job:Callback();
 		end
 	end
@@ -95,8 +90,8 @@ local function CronJob(CronSettings: CronSettings)
 
 	table.insert(Jobs, Job);
 
-	Job.Stop = function(self)
-		print(table.remove(Jobs, table.find(Jobs, self)));
+	Job.Stop = function()
+		table.remove(Jobs, table.find(Jobs, Job));
 	end
 
 	return Job;
