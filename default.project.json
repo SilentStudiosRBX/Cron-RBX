@@ -1,13 +1,6 @@
 {
   "name": "cron-testing",
   "tree": {
-    "$className": "DataModel",
-
-    "ReplicatedStorage": {
-      "$className": "ReplicatedStorage",
-      "Cron": {
-        "$path": "src"
-      }
-    }
+    "$path": "src"
   }
 }
