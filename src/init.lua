@@ -15,11 +15,10 @@ local function GetNextTime(Job, CurrentTime)
 		return
 	end
 
-	local nextTime;
+    local Date = os.date("!*t", CurrentTime);
+	local NextTime;
 
-	while not nextTime do
-		local Date = os.date("!*t", CurrentTime);
-
+	while not NextTime do
 		local Found = true;
 
 		for Index, Pattern in pairs(Job.Pattern) do
@@ -33,26 +32,28 @@ local function GetNextTime(Job, CurrentTime)
 		end
 
 		if Found then
-			nextTime = CurrentTime;
+			NextTime = CurrentTime;
 		else
 			CurrentTime += 1;
 		end
 	end
 
-	return nextTime;
+	return NextTime;
 end
 
 local Time = DateTime.now().UnixTimestamp;
 
-RunService.Heartbeat:Connect(function(deltaTime)
-	Time += deltaTime;
+RunService.Heartbeat:Connect(function(DeltaTime)
+	Time += DeltaTime;
 
-	for _, Job in Jobs do
-		local AdjustedUnixTime = Time + Job.Difference;
-		if Job.Next and AdjustedUnixTime >= Job.Next then
-			Job.Next = GetNextTime(Job, AdjustedUnixTime);
-			Job:Callback();
-		end
+	for _, Job in pairs(Jobs) do
+        task.spawn(function()
+            local AdjustedUnixTime = Time + Job.Difference;
+            if Job.Next and AdjustedUnixTime >= Job.Next then
+                Job.Next = GetNextTime(Job, AdjustedUnixTime);
+                Job.Callback();
+            end
+        end)
 	end
 end)
 
@@ -64,7 +65,17 @@ export type CronSettings = {
 	Callback: () -> nil;
 }
 
-local function CronJob(CronSettings: CronSettings)
+export type CronJob = {
+    Start: DateTime?;
+    End: DateTime?;
+    Pattern: { any };
+    Difference: number;
+    Callback: () -> nil;
+    Stop: () -> nil;
+	TimeUntilNext: (AsString: boolean?) -> number | string;
+}
+
+local function NewCronJob(CronSettings: CronSettings): CronJob
 	local TimeZoneOffset = if CronSettings.UTC then CronSettings.UTC else -5;
 
 	if type(TimeZoneOffset) == "string" then
@@ -88,15 +99,22 @@ local function CronJob(CronSettings: CronSettings)
 
 	Job.Next = GetNextTime(Job, Time + Difference);
 
-	table.insert(Jobs, Job);
+    function Job:TimeUntilNext(AsString: boolean?)
+        if Job.Next then
+            local TimeUntilNext = Job.Next - (Time + Difference);
+            return if AsString then string.format("%02i:%02i:%02i", TimeUntilNext/60^2, TimeUntilNext/60%60, TimeUntilNext%60) else TimeUntilNext;
+        end
+    end
 
-	Job.Stop = function()
+	function Job.Stop()
 		table.remove(Jobs, table.find(Jobs, Job));
 	end
+
+	table.insert(Jobs, Job);
 
 	return Job;
 end
 
 return {
-	new = CronJob;
+	new = NewCronJob;
 }

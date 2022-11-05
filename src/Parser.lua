@@ -42,7 +42,7 @@ local function Validate(Index, Expression)
 			local MappedIndex = IndexMap[Index];
 			local IndexInfo = Settings[MappedIndex];
 
-			for _, Number in ipairs(Numbers) do
+			for _, Number in pairs(Numbers) do
 				if Number < IndexInfo.Min or Number > IndexInfo.Max then
 					warn(string.format(Settings.Errors.ArgumentOutsideRange, Index, IndexInfo.Min, IndexInfo.Max, Number));
 					return
