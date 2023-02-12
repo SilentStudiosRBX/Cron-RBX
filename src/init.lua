@@ -1,4 +1,13 @@
+--[[
+	This library was made by Silent Studios,
+	for the purpose of making Javascript like automated features.
+	It wasn't intended for performance-constrained scenarios
+	and the only real niche scenario this was intended for was defining
+	roll over times for stuff like item shops.
+]]--
+
 local RunService = game:GetService("RunService");
+
 local Settings = require(script.Settings);
 local Parser = require(script.Parser);
 
@@ -16,7 +25,7 @@ local function GetNextTime(Job, CurrentTime)
 	end
 
     local Date = os.date("!*t", CurrentTime);
-	local NextTime;
+	local NextTime = nil;
 
 	while not NextTime do
 		local Found = true;
@@ -118,3 +127,27 @@ end
 return {
 	new = NewCronJob;
 }
+
+--[[
+	MIT License
+
+	Copyright (c) 2022 SilentStudiosRBX
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+]]
