@@ -1,3 +1,6 @@
+--!strict
+--!optimize 2
+
 --[[
 	This library was made by Silent Studios,
 	for the purpose of making Javascript like automated features.
@@ -11,16 +14,36 @@ local RunService = game:GetService("RunService");
 local Settings = require(script.Settings);
 local Parser = require(script.Parser);
 
+export type CronSettings = {
+	Start: DateTime?;
+	End: DateTime?;
+	UTC: string | number?;
+	Time: string?;
+	Callback: () -> nil;
+}
+
+export type CronJob = {
+	StartTime: DateTime?;
+	EndTime: DateTime?;
+	Start: () -> ();
+	Pattern: { any };
+	Difference: number;
+	Callback: () -> ();
+	Stop: () -> ();
+	TimeUntilNext: (AsString: boolean?) -> number | string?;
+	Next: number?;
+}
+
 local Jobs = {};
 
-local function GetNextTime(Job, CurrentTime)
+local function GetNextTime(Job: CronJob, CurrentTime: number)
 	CurrentTime += 1;
 
-	if (Job.Start and os.difftime(CurrentTime, Job.Start.UnixTimestamp) < 0) then
+	if (Job.StartTime and os.difftime(CurrentTime, Job.StartTime.UnixTimestamp) < 0) then
 		return
 	end
 
-	if (Job.End and os.difftime(Job.End.UnixTimestamp, CurrentTime) < 0) then
+	if (Job.EndTime and os.difftime(Job.EndTime.UnixTimestamp, CurrentTime) < 0) then
 		return
 	end
 
@@ -44,6 +67,7 @@ local function GetNextTime(Job, CurrentTime)
 			NextTime = CurrentTime;
 		else
 			CurrentTime += 1;
+			Date = os.date("!*t", CurrentTime);
 		end
 	end
 
@@ -66,60 +90,55 @@ RunService.Heartbeat:Connect(function(DeltaTime)
 	end
 end)
 
-export type CronSettings = {
-	Start: DateTime?;
-	End: DateTime?;
-	UTC: string | number?;
-	Time: string?;
-	Callback: () -> nil;
-}
-
-export type CronJob = {
-    Start: DateTime?;
-    End: DateTime?;
-    Pattern: { any };
-    Difference: number;
-    Callback: () -> nil;
-    Stop: () -> nil;
-	TimeUntilNext: (AsString: boolean?) -> number | string;
-}
-
 local function NewCronJob(CronSettings: CronSettings): CronJob
-	local TimeZoneOffset = if CronSettings.UTC then CronSettings.UTC else -5;
+	local TimeZoneOffset: string | number? = if CronSettings.UTC then CronSettings.UTC else -5;
 
 	if type(TimeZoneOffset) == "string" then
 		local Value = TimeZoneOffset:match("U*T*C*[%-%+]*%d+");
+		
 		if not Value then
 			warn(string.format(Settings.Errors.InvalidTimeOffset, TimeZoneOffset));
+		else
+			Value = Value:gsub("UTC", "");
+			TimeZoneOffset = tonumber(Value);
 		end
-		Value = Value:gsub("UTC", "");
-		TimeZoneOffset = tonumber(Value);
 	end
 
-	local Difference = TimeZoneOffset * 3600;
+	local Difference: number = if TimeZoneOffset and typeof(TimeZoneOffset) == "number" then TimeZoneOffset * 3600 else -18000; -- Defaults to CST if nothing is either given or an error occurs.
 
 	local Job = {
-		Start = CronSettings.Start;
-		End = CronSettings.End;
+		StartTime = CronSettings.Start or nil;
+		EndTime = CronSettings.End or nil;
 		Pattern = Parser(CronSettings.Time or "");
 		Difference = Difference;
 		Callback = CronSettings.Callback;
-	};
+	} :: CronJob;
 
 	Job.Next = GetNextTime(Job, Time + Difference);
 
-    function Job:TimeUntilNext(AsString: boolean?)
+    function Job:TimeUntilNext(AsString: boolean?): number | string?
         if Job.Next then
             local TimeUntilNext = Job.Next - (Time + Difference);
             return if AsString then string.format("%02i:%02i:%02i", TimeUntilNext/60^2, TimeUntilNext/60%60, TimeUntilNext%60) else TimeUntilNext;
-        end
+		end
+		return
     end
 
 	function Job.Stop()
-		table.remove(Jobs, table.find(Jobs, Job));
+		for Index = #Jobs, 1, -1 do
+			local Temp = Jobs[Index];
+			if Temp == Job then
+				table.remove(Jobs, Index);
+				return
+			end
+		end
 	end
 
-	table.insert(Jobs, Job);
+	function Job.Start()
+		table.insert(Jobs, Job);
+	end
+
+	Job.Start();
 
 	return Job;
 end
