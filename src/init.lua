@@ -71,7 +71,7 @@ local function GetNextTime(Job: CronJob, CurrentTime: number)
 		end
 	end
 	
-	Job.Next = NextTime;
+	return NextTime;
 end
 
 local Time = DateTime.now().UnixTimestamp;
@@ -80,11 +80,13 @@ RunService.Heartbeat:Connect(function(DeltaTime)
 	Time += DeltaTime;
 
 	for _, Job in pairs(Jobs) do
-		local AdjustedUnixTime = Time + Job.Difference;
-		if Job.Next and AdjustedUnixTime >= Job.Next then
-			task.spawn(GetNextTime, Job, AdjustedUnixTime);
-			task.spawn(Job.Callback);
-		end
+		task.spawn(function()
+			local AdjustedUnixTime = Time + Job.Difference;
+			if Job.Next and AdjustedUnixTime >= Job.Next then
+				Job.Next = GetNextTime(Job, AdjustedUnixTime);
+				Job.Callback();
+			end
+		end)
 	end
 end)
 
