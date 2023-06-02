@@ -2,7 +2,7 @@
 --!optimize 2
 
 --[[
-	This library was made by Silent Studios,
+	This library was made by Silent Studios -> (RemnantsOfSiren, Byran, Siren),
 	for the purpose of making Javascript like automated features.
 	It wasn't intended for performance-constrained scenarios
 	and the only real niche scenario this was intended for was defining
@@ -70,8 +70,8 @@ local function GetNextTime(Job: CronJob, CurrentTime: number)
 			Date = os.date("!*t", CurrentTime);
 		end
 	end
-
-	return NextTime;
+	
+	Job.Next = NextTime;
 end
 
 local Time = DateTime.now().UnixTimestamp;
@@ -80,18 +80,16 @@ RunService.Heartbeat:Connect(function(DeltaTime)
 	Time += DeltaTime;
 
 	for _, Job in pairs(Jobs) do
-        task.spawn(function()
-            local AdjustedUnixTime = Time + Job.Difference;
-            if Job.Next and AdjustedUnixTime >= Job.Next then
-                Job.Next = GetNextTime(Job, AdjustedUnixTime);
-                Job.Callback();
-            end
-        end)
+		local AdjustedUnixTime = Time + Job.Difference;
+		if Job.Next and AdjustedUnixTime >= Job.Next then
+			task.spawn(GetNextTime, Job, AdjustedUnixTime);
+			task.spawn(Job.Callback);
+		end
 	end
 end)
 
 local function NewCronJob(CronSettings: CronSettings): CronJob
-	local TimeZoneOffset: string | number? = if CronSettings.UTC then CronSettings.UTC else -5;
+	local TimeZoneOffset: string | number? = if CronSettings.UTC then CronSettings.UTC else 0;
 
 	if type(TimeZoneOffset) == "string" then
 		local Value = TimeZoneOffset:match("U*T*C*[%-%+]*%d+");
@@ -104,7 +102,7 @@ local function NewCronJob(CronSettings: CronSettings): CronJob
 		end
 	end
 
-	local Difference: number = if TimeZoneOffset and typeof(TimeZoneOffset) == "number" then TimeZoneOffset * 3600 else -18000; -- Defaults to CST if nothing is either given or an error occurs.
+	local Difference: number = if TimeZoneOffset and typeof(TimeZoneOffset) == "number" then TimeZoneOffset * 3600 else 0;
 
 	local Job = {
 		StartTime = CronSettings.Start or nil;
@@ -118,7 +116,7 @@ local function NewCronJob(CronSettings: CronSettings): CronJob
 
     function Job:TimeUntilNext(AsString: boolean?): number | string?
         if Job.Next then
-            local TimeUntilNext = Job.Next - (Time + Difference);
+            local TimeUntilNext = os.difftime(Job.Next, (Time + Difference));
             return if AsString then string.format("%02i:%02i:%02i", TimeUntilNext/60^2, TimeUntilNext/60%60, TimeUntilNext%60) else TimeUntilNext;
 		end
 		return
