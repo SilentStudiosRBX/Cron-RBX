@@ -47,7 +47,7 @@ local function GetNextTime(Job: CronJob, CurrentTime: number)
 		return
 	end
 
-    local Date = os.date("!*t", CurrentTime);
+	local Date = os.date("!*t", CurrentTime);
 	local NextTime = nil;
 
 	while not NextTime do
